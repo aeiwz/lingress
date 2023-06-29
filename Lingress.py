@@ -76,8 +76,6 @@ class lin_regression:
         self.tag = target
         self.features_name = features_name
         self.label = label
-    
-
 
     def create_dataset(self):
 
@@ -85,8 +83,6 @@ class lin_regression:
         dataset = test.create_dataset()
         print(test.show_dataset()) # Show the created dataset
         '''
-
-
         # Create new dataset
 
         y = pd.Categorical(self.y).codes
@@ -120,10 +116,7 @@ class lin_regression:
         '''
 
         dataset = self.dataset
-        self.adj_method = adj_method
-
-
-    
+        self.adj_method = adj_method    
         if adj_method == "bonferroni":
             adj_name = "one-step correction"
         elif adj_method == "sidak":
@@ -144,18 +137,12 @@ class lin_regression:
             adj_name = "two stage fdr correction (non-negative)"
         elif adj_method == "fdr_tsbky":
             adj_name = "two stage fdr correction (non-negative)"
-
-        
+    
         a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
         b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
 
         l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
         df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
-
-
-        
-        
-
 
         # Lists to store the information
         # p-value for the genotype effect
@@ -178,15 +165,13 @@ class lin_regression:
             self.fpval.append(res.f_pvalue)
             self.r2.append(res.rsquared)
 
-
         a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
         b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
 
         l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
         l2_df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
         self.l2_df2 = l2_df.fillna(0)          
-
-        
+     
         self.pval_df = pd.DataFrame(self.pval, index=self.features_name, columns=["P-value"])
         self.beta_df = pd.DataFrame(self.beta, index=self.features_name, columns=["Beta"])
         self.fpval_df = pd.DataFrame(self.fpval, index=self.features_name, columns=["pval_F-test"])
@@ -261,9 +246,6 @@ class lin_regression:
         #Model resampling - bootstrapping
         # Define function that can be called by each worker:
         def bootstrap_model(variable, n_boot, dataset):
-
-           
-
             boot_stats = np.zeros((n_boot, 5))
             
             for boot_iter in range(n_boot):
@@ -276,8 +258,7 @@ class lin_regression:
                 boot_stats[boot_iter, 2] = res.f_pvalue # p-value of F-test
                 boot_stats[boot_iter, 3] = res.rsquared # R^2
                 boot_stats[boot_iter, 4] = res.rsquared_adj # R^2 adjustment
-                
-                
+                               
             return boot_stats
         import joblib
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch='1.5*n_jobs')(joblib.delayed(bootstrap_model)(i, n_boots, dataset) for i in range(2, dataset.shape[1]))
@@ -434,7 +415,6 @@ class lin_regression:
         self.statstable = stats_table
         return stats_table
 
-
     def metname_df(self, x_position, met_names):
         self.met_names = met_names
         self.x_position = x_position
@@ -590,9 +570,6 @@ class lin_regression:
                                     ).data[0])
 
         fig.update_traces(textposition='top center').data[0]
-        
-
-
         fig.update_layout(
             xaxis_title="𝛿<sub>H</sub> in ppm",
             yaxis_title="Intensity (AU)",
@@ -600,12 +577,9 @@ class lin_regression:
                 size=14
             )
         )
-
         fig.update_layout(xaxis = dict(autorange='reversed'))
         # Show the plot
         self.fig = fig
-
-
         return fig.show()
 
     def manhattan_plot(self, plot_title=None, alpha=None):
@@ -664,7 +638,7 @@ class lin_regression:
         self.fig = fig
 
         return fig.show()
-    
+           
     def html_plot(self, plot_name, path_save=None):
         self.path_save = path_save
         self.plot_name = plot_name
