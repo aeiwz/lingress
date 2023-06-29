@@ -17,7 +17,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-__auther__ = "aeiwz"
+__author__ = "aeiwz"
 
 
 class lin_regression:
@@ -103,7 +103,7 @@ class lin_regression:
         return dataset
 
     def show_dataset(self):
-        return dataset
+        return self.dataset
 
     def fit_model(self, datasets=None, adj_method=None):
 
@@ -132,6 +132,15 @@ class lin_regression:
             adj_name = "two stage fdr correction (non-negative)"
         elif adj_method == "fdr_tsbky":
             adj_name = "two stage fdr correction (non-negative)"
+
+        
+        a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
+        b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
+
+        l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
+        df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
+
+
         
         
 
@@ -156,6 +165,14 @@ class lin_regression:
             self.beta.append(res.params[1])
             self.fpval.append(res.f_pvalue)
             self.r2.append(res.rsquared)
+
+
+        a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
+        b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
+
+        l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
+        l2_df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
+        self.l2_df2 = l2_df.fillna(0)          
 
         
         self.pval_df = pd.DataFrame(self.pval, index=self.features_name, columns=["P-value"])
@@ -335,6 +352,10 @@ class lin_regression:
         p_adj = self.qval_df
         return p_adj
     
+    def log2_fc(self):
+        log2_fc_df = self.l2_df2
+        return log2_fc_df
+    
 
     def report(self):
 
@@ -344,10 +365,11 @@ class lin_regression:
         fpval = self.fpval_df
         r2 = self.r2_df
         p_adj = self.qval_df
+        log_2fc = self.l2_df2
 
 
         
-        stats_table = pd.concat([pval, beta, p_adj, r2, fpval], axis=1)
+        stats_table = pd.concat([pval, beta, p_adj, r2, fpval, log_2fc], axis=1)
         self.statstable = stats_table
         return stats_table
 
@@ -384,10 +406,6 @@ class lin_regression:
         return met_label_df
 
     
-
-
-
-
 
 
 
@@ -546,15 +564,63 @@ class lin_regression:
 
 
         return fig.show()
+
+    def manhattan_plot(self, plot_title=None):
+
     
-    def html_plot(self, path_save=None):
+        self.plot_title = plot_title
+        x = self.features_name
+        pval = self.mean_p_df
+        beta = self.mean_beta_df
+
+        pval.columns=["P-value"]
+        beta.columns=["Beta coefficient"]
+        y = pd.DataFrame(beta["Beta coefficient"]*(-np.log10(pval["P-value"])), index = self.features_name, columns=["beta x -log10 p-value"])
+        plot_df = pd.concat([pval, beta, y], axis=1)
+
+        fig = px.scatter(plot_df, x=x, y="beta x -log10 p-value", text="P-value",
+                            color="Beta coefficient", range_color=[-1, 1],
+                            color_continuous_scale="RdBu",
+                            
+                            labels={"beta x -log10 p-value": "β × (-log<sub>10</sub> <i>p-value</i>)",
+                                    "x": "𝛿<sub>H</sub> in ppm",
+                                    "Beta coefficient": "β coefficient",
+                                    "text": "<i>p-value</i>"})
+
+        if plot_title == None:
+        
+            fig.update_layout(title={
+                    'text': "<b>Manhattan plot</b>",
+                    'y':0.98,
+                    'x':0.5,
+                    'xanchor': 'center',
+                    'yanchor': 'top'})
+        
+        else:
+            fig.update_layout(title={
+                    'text': "<b>Manhattan plot  {}</b>".format(plot_title),
+                    'y':0.98,
+                    'x':0.5,
+                    'xanchor': 'center',
+                    'yanchor': 'top'})
+
+
+
+        fig.update_layout(xaxis = dict(autorange='reversed'))
+
+        self.fig = fig
+
+        return fig.show()
+    
+    def html_plot(self, plot_name, path_save=None):
         self.path_save = path_save
+        self.plot_name = plot_name
         fig = self.fig
         return fig.write_html("{}/{}_p_value_plot_{}_vs_{}.html".format(path_save, self.sample_type, self.label_a, self.label_b))
     def png_plot(self, path_save=None):
         self.path_save = path_save
         fig = self.fig
-        return fig.write_image("{}/{}_p_value_plot_{}_vs_{}.png".format(path_save, self.sample_type, self.label_a, self.label_b))
+        return fig.write_image("{}/{}{}{}_vs_{}.png".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
 
 
     def find_pval(self, ppm):
@@ -564,4 +630,47 @@ class lin_regression:
         idx = np.abs(stats_table.index.values.astype(float) - ppm).argmin()
         pos_y = stats_table.iloc[idx, 0]
         print("<i>p-value</i>: {pos_y.f}")
+
+
+    def volcano_plot(self, plot_title=None):
+
+        
+
+        log2_fc = self.l2_df2
+        pval = self.pval_df
+        beta = self.beta_df
+
+        log10_p = -np.log10(pval)
+        log10_p.columns=["-Log10 P-value"]
+
+
+        df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
+        df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
+
+
+        # x and y given as DataFrame columns
+
+
+        fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", text=df_vol.index,
+                        color="Beta", range_color=[-1, 1],
+                        color_continuous_scale="RdBu",
+                        labels={"-Log10 P-value": "-log<sub>10</sub> (<i>p-value</i>)",
+                                "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",
+                                "Beta": "β coefficient"})
+        fig.update_layout(
+                            title={
+                'text': "<b>Volcano plot {}</b>".format(plot_title),
+                'y':0.98,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'})
+
+        self.fig = fig
+
+
+        return fig.show()
+
+        
+        
+
 
