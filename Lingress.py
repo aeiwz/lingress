@@ -20,8 +20,6 @@ import plotly.graph_objects as go
 
 __author__ = "aeiwz"
 
-
-
 class lin_regression:
     
     
@@ -305,9 +303,6 @@ class lin_regression:
         self.r2_boost = pd.DataFrame(results_2[:, :, 3], index=self.features_name)
         self.adj_r2_boost = pd.DataFrame(results_2[:, :, 4], index=self.features_name)
 
-
-       
-
         if adj_method == None:
             
             No_adj = list()
@@ -315,7 +310,6 @@ class lin_regression:
                 No_adj.append("No q-value")
             self.mean_qval_df = pd.DataFrame(No_adj, index=self.features_name, columns=["q_value"])
             
-
         else:
             adj_method = self.adj_method
             p_est = multipletests(mean_p, alpha=0.05, method=adj_method)
@@ -323,10 +317,6 @@ class lin_regression:
             pf_est = multipletests(mean_pf, alpha=0.05, method=adj_method)
             fqval = pf_est[1]
             self.mean_qval_df = pd.DataFrame(qval, index=self.features_name, columns=["q_value"])
-            
-
-        
-   
 
         self.mean_p_df = pd.DataFrame(mean_p, index=self.features_name, columns=["Mean P-value"])
         self.std_p_df = pd.DataFrame(std_p, index=self.features_name, columns=["std P-value"])
@@ -339,11 +329,9 @@ class lin_regression:
         self.mean_r2_adj_df = pd.DataFrame(mean_r2_adj, index=self.features_name, columns=["Mean R-square Adjustment"])
         self.std_r2_adj_df = pd.DataFrame(std_r2_adj, index=self.features_name, columns=["std R-square Adjustment"])
 
-
         self.results = results
 
         return results
-
 
     def resampling_df(self, values=None):
 
@@ -367,7 +355,6 @@ class lin_regression:
         f_pval_boost = self.f_pval_boost
         r2_boost = self.r2_boost
         adj_r2_boost = self.adj_r2_boost
-
 
         if values == "mean_P-value":
             return pval
@@ -395,16 +382,12 @@ class lin_regression:
             return adj_r2_boost
         else:
             return resampling_results_df
-
-    
+  
     def save_boostrap(self, path_save, sample_type="No type"):
         self.path_save = path_save
         self.sample_type = sample_type
         results = self.results
         return np.save('{}/{}_bootstrap_results_univariate[{}_{}].npy'.format(path_save, sample_type, self.label_a, self.label_b), results)
-
-
-
 
     def p_value(self):
         pval = self.pval_df
@@ -430,7 +413,6 @@ class lin_regression:
         log2_fc_df = self.l2_df2
         return log2_fc_df
     
-
     def report(self):
 
         '''
@@ -447,9 +429,7 @@ class lin_regression:
         r2 = self.r2_df
         p_adj = self.qval_df
         log_2fc = self.l2_df2
-
-
-        
+       
         stats_table = pd.concat([pval, beta, p_adj, r2, fpval, log_2fc], axis=1)
         self.statstable = stats_table
         return stats_table
@@ -461,12 +441,7 @@ class lin_regression:
         y = self.dataset
         ppm = self.features_name
 
-
-
-
-
         y_df = pd.DataFrame(list(y.iloc[:, 2:].max()), columns=["position_y"], index=ppm)
-
         x_position = list(np.ravel(x_position))
 
         y_pos = list()
@@ -497,8 +472,6 @@ class lin_regression:
         self.label_b = label_b
         self.p_value = p_value
 
-        
-
         if p_value == "p-value":
             pval = self.pval_df
         if p_value == "q-value":
@@ -515,14 +488,12 @@ class lin_regression:
         idx_a = dataset.loc[dataset["Target"] == 0].index
         idx_b = dataset.loc[dataset["Target"] == 1].index
 
-
         #set dataset for plot
         df_a = spectra.loc[idx_a]
         df_b = spectra.loc[idx_b]
 
         meta_a = meta.loc[idx_a]
         meta_b = meta.loc[idx_b]
-
 
         if self.label_a == None:
             label_a = meta_a.iat[0,0]
@@ -539,7 +510,6 @@ class lin_regression:
         code_a = meta_a.iat[0,1]
         code_b = meta_b.iat[0,1]
     
-
         meanX_a = pd.DataFrame(list(df_a.mean(axis=0)), index=ppm, columns=[label_a])
         std_a = pd.DataFrame(list(df_a.std(axis=0)), index=ppm, columns=["std_a"])
         meanX_b = pd.DataFrame(list(df_b.mean(axis=0)), index=ppm, columns=[label_b])
@@ -639,8 +609,7 @@ class lin_regression:
         return fig.show()
 
     def manhattan_plot(self, plot_title=None, alpha=None):
-
-        
+     
         self.plot_title = plot_title
         x = self.features_name
         pval = self.mean_p_df
@@ -673,8 +642,6 @@ class lin_regression:
             fig.add_shape(type='line', x0=min(x), y0=-alpha, x1=max(x), y1=-alpha,
                 line=dict(color='red', width=2, dash='dot'))
 
-
-
         if plot_title == None:
         
             fig.update_layout(title={
@@ -692,8 +659,6 @@ class lin_regression:
                     'xanchor': 'center',
                     'yanchor': 'top'})
 
-
-
         fig.update_layout(xaxis = dict(autorange='reversed'))
 
         self.fig = fig
@@ -710,7 +675,6 @@ class lin_regression:
         fig = self.fig
         return fig.write_image("{}/{}{}{}_vs_{}.png".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
 
-
     def find_pval(self, ppm):
         stats_table = self.stats_table
         self.ppm = ppm
@@ -719,10 +683,7 @@ class lin_regression:
         pos_y = stats_table.iloc[idx, 0]
         print("<i>p-value</i>: {pos_y.f}")
 
-
     def volcano_plot(self, plot_title=None):
-
-        
 
         log2_fc = self.l2_df2
         pval = self.pval_df
@@ -731,13 +692,10 @@ class lin_regression:
         log10_p = -np.log10(pval)
         log10_p.columns=["-Log10 P-value"]
 
-
         df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
         df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
 
-
         # x and y given as DataFrame columns
-
 
         fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", text=df_vol.index,
                         color="Beta", range_color=[-1, 1],
@@ -763,8 +721,6 @@ class lin_regression:
               line=dict(color='red', width=2, dash='dot'))
 
         self.fig = fig
-
-
         return fig.show()
 
 
