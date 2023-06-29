@@ -240,7 +240,7 @@ class lin_regression:
 
            
 
-            boot_stats = np.zeros((n_boot, 4))
+            boot_stats = np.zeros((n_boot, 7))
             
             for boot_iter in range(n_boot):
                 boot_sample = np.random.choice(dataset.shape[0], dataset.shape[0], replace=True)
@@ -251,6 +251,9 @@ class lin_regression:
                 boot_stats[boot_iter, 1] = res.params[0]   # Beta coeficient
                 boot_stats[boot_iter, 2] = res.f_pvalue # p-value of F-test
                 boot_stats[boot_iter, 3] = res.rsquared # R^2
+                boot_stats[boot_iter, 4] = res.rsquared_adj # R^2 adjustment
+                
+                
             return boot_stats
         import joblib
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch='1.5*n_jobs')(joblib.delayed(bootstrap_model)(i, n_boots, dataset) for i in range(2, dataset.shape[1]))
@@ -265,6 +268,10 @@ class lin_regression:
         std_pf = np.array([x[:, 2].std() for x in results])
         mean_r2 = np.array([x[:, 3].mean() for x in results])
         std_r2 = np.array([x[:, 3].std() for x in results])
+        mean_r2_adj = np.array([x[:, 4].mean() for x in results])
+        std_r2_adj = np.array([x[:, 4].std() for x in results])
+
+       
 
         if adj_method == None:
             
@@ -272,7 +279,7 @@ class lin_regression:
             for i in range(len(self.features_name)):
                 No_adj.append("No q-value")
             self.mean_qval_df = pd.DataFrame(No_adj, index=self.features_name, columns=["q_value"])
-            self.mean_fqval_df = pd.DataFrame(No_adj, index=self.features_name, columns=["q_value (F-test)"])
+            
 
         else:
             adj_method = self.adj_method
@@ -281,7 +288,7 @@ class lin_regression:
             pf_est = multipletests(mean_pf, alpha=0.05, method=adj_method)
             fqval = pf_est[1]
             self.mean_qval_df = pd.DataFrame(qval, index=self.features_name, columns=["q_value"])
-            self.mean_fqval_df = pd.DataFrame(fqval, index=self.features_name, columns=["q_value (F-test)"])
+            
 
         
    
@@ -294,6 +301,9 @@ class lin_regression:
         self.std_pf_df = pd.DataFrame(std_pf, index=self.features_name, columns=["std P-value (F-test)"])
         self.mean_r2_df = pd.DataFrame(mean_r2, index=self.features_name, columns=["Mean R-square"])
         self.std_r2_df = pd.DataFrame(std_r2, index=self.features_name, columns=["std R-square"])
+        self.mean_r2_adj_df = pd.DataFrame(mean_r2_adj, index=self.features_name, columns=["Mean R-square Adjustment"])
+        self.std_r2_adj_df = pd.DataFrame(std_r2_adj, index=self.features_name, columns=["std R-square Adjustment"])
+
 
         self.results = results
 
@@ -301,26 +311,32 @@ class lin_regression:
 
 
     def resampling_df(self, values=None):
+        
+        pval = pd.concat([self.mean_p_df, self.std_p_df], axis=1)
+        beta = pd.concat([self.mean_beta_df, self.std_beta_df], axis=1)
+        fp_val = pd.concat([self.mean_pf_df, self.std_pf_df], axis=1)
+        R2 = pd.concat([self.mean_r2_df, self.std_r2_df], axis=1)
+        R2_adj = pd.concat([self.mean_r2_adj_df, self.std_r2_adj_df], axis=1)
+        resampling_results_df = pd.concat([pval, beta, fp_val, R2, R2_adj, self.mean_qval_df], axis=1)
+        self.resampling_results_df = resampling_results_df
+
 
         if values == "P-value":
-            pval = pd.concat([self.mean_p_df, self.std_p_df], axis=1)
             return pval
         elif values == "Beta":
-            beta = pd.concat([self.mean_beta_df, self.std_beta_df], axis=1)
             return beta
-        elif values == "F-test":
-            fp_val = pd.concat([self.mean_pf_df, self.std_pf_df], axis=1)
+        elif values == "P F-test":
             return fp_val
         elif values == "R2":
-            R2 = pd.concat([self.mean_r2_df, self.std_r2_df], axis=1)
             return R2
+        elif values == "R2 adj":
+            return R2_adj
         elif values == "q-value":
             return self.mean_qval_df
         elif values == "q-value F-test":
             return self.mean_fqval_df
         else:
-            results_df = pd.concat([self.mean_p_df, self.std_p_df, self.mean_beta_df, self.std_beta_df, self.mean_pf_df, self.std_pf_df, self.mean_r2_df, self.std_r2_df, self.mean_qval_df, self.mean_fqval_df], axis=1)
-            return results_df
+            return resampling_results_df
 
     
     def save_boostrap(self, path_save, sample_type="No type"):
@@ -565,27 +581,42 @@ class lin_regression:
 
         return fig.show()
 
-    def manhattan_plot(self, plot_title=None):
+    def manhattan_plot(self, plot_title=None, alpha=None):
 
-    
+        
         self.plot_title = plot_title
         x = self.features_name
         pval = self.mean_p_df
         beta = self.mean_beta_df
+        R2 = self.mean_r2_adj_df
+        q_val = self.mean_qval_df
 
         pval.columns=["P-value"]
         beta.columns=["Beta coefficient"]
-        y = pd.DataFrame(beta["Beta coefficient"]*(-np.log10(pval["P-value"])), index = self.features_name, columns=["beta x -log10 p-value"])
-        plot_df = pd.concat([pval, beta, y], axis=1)
+        R2.columns=["R2"]
+        log10_pval = pd.DataFrame(-np.log10(np.ravel(pval)), index=self.features_name, columns=["-log10 P-value"])
+        y = pd.DataFrame(beta["Beta coefficient"]*(-np.log10(q_val["q_value"])), index = self.features_name, columns=["beta x -log10 q-value"])
+        plot_df = pd.concat([pval, q_val, beta, y, R2, log10_pval], axis=1)
 
-        fig = px.scatter(plot_df, x=x, y="beta x -log10 p-value", text="P-value",
+        fig = px.scatter(plot_df, x=x, y="beta x -log10 q-value", text="q_value",
                             color="Beta coefficient", range_color=[-1, 1],
                             color_continuous_scale="RdBu",
                             
-                            labels={"beta x -log10 p-value": "β × (-log<sub>10</sub> <i>p-value</i>)",
+                            labels={"beta x -log10 q-value": "β × (-log<sub>10</sub> <i>q-value</i>)",
                                     "x": "𝛿<sub>H</sub> in ppm",
                                     "Beta coefficient": "β coefficient",
-                                    "text": "<i>p-value</i>"})
+                                    "text": "<i>q-value</i>"})
+
+        if alpha == None:
+            fig
+        else:
+            fig.add_shape(type='line', x0=min(x), y0=alpha, x1=max(x), y1=alpha,
+                line=dict(color='red', width=2, dash='dot'))
+
+            fig.add_shape(type='line', x0=min(x), y0=-alpha, x1=max(x), y1=-alpha,
+                line=dict(color='red', width=2, dash='dot'))
+
+
 
         if plot_title == None:
         
@@ -616,7 +647,7 @@ class lin_regression:
         self.path_save = path_save
         self.plot_name = plot_name
         fig = self.fig
-        return fig.write_html("{}/{}_p_value_plot_{}_vs_{}.html".format(path_save, self.sample_type, self.label_a, self.label_b))
+        return fig.write_html("{}/{}{}{}_vs_{}.html".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
     def png_plot(self, path_save=None):
         self.path_save = path_save
         fig = self.fig
@@ -664,6 +695,15 @@ class lin_regression:
                 'x':0.5,
                 'xanchor': 'center',
                 'yanchor': 'top'})
+
+        fig.add_shape(type='line', x0=-10, y0=2, x1=10, y1=2,
+              line=dict(color='red', width=2, dash='dot'))
+
+        fig.add_shape(type='line', x0=-1, y0=0, x1=-1, y1=10,
+              line=dict(color='red', width=2, dash='dot'))
+              
+        fig.add_shape(type='line', x0=1, y0=0, x1=1, y1=10,
+              line=dict(color='red', width=2, dash='dot'))
 
         self.fig = fig
 
