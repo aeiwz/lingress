@@ -18,7 +18,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+
 __author__ = "aeiwz"
+
+
 
 class lin_regression:
     
@@ -66,7 +69,6 @@ class lin_regression:
     """
 
    
-
     def __init__(self, x, target, label, features_name):
         
     
@@ -76,6 +78,8 @@ class lin_regression:
         self.tag = target
         self.features_name = features_name
         self.label = label
+    
+
 
     def create_dataset(self):
 
@@ -83,6 +87,8 @@ class lin_regression:
         dataset = test.create_dataset()
         print(test.show_dataset()) # Show the created dataset
         '''
+
+
         # Create new dataset
 
         y = pd.Categorical(self.y).codes
@@ -116,7 +122,8 @@ class lin_regression:
         '''
 
         dataset = self.dataset
-        self.adj_method = adj_method    
+        self.adj_method = adj_method
+   
         if adj_method == "bonferroni":
             adj_name = "one-step correction"
         elif adj_method == "sidak":
@@ -137,7 +144,8 @@ class lin_regression:
             adj_name = "two stage fdr correction (non-negative)"
         elif adj_method == "fdr_tsbky":
             adj_name = "two stage fdr correction (non-negative)"
-    
+
+        
         a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
         b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
 
@@ -171,7 +179,7 @@ class lin_regression:
         l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
         l2_df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
         self.l2_df2 = l2_df.fillna(0)          
-     
+       
         self.pval_df = pd.DataFrame(self.pval, index=self.features_name, columns=["P-value"])
         self.beta_df = pd.DataFrame(self.beta, index=self.features_name, columns=["Beta"])
         self.fpval_df = pd.DataFrame(self.fpval, index=self.features_name, columns=["pval_F-test"])
@@ -246,6 +254,7 @@ class lin_regression:
         #Model resampling - bootstrapping
         # Define function that can be called by each worker:
         def bootstrap_model(variable, n_boot, dataset):
+
             boot_stats = np.zeros((n_boot, 5))
             
             for boot_iter in range(n_boot):
@@ -258,7 +267,7 @@ class lin_regression:
                 boot_stats[boot_iter, 2] = res.f_pvalue # p-value of F-test
                 boot_stats[boot_iter, 3] = res.rsquared # R^2
                 boot_stats[boot_iter, 4] = res.rsquared_adj # R^2 adjustment
-                               
+               
             return boot_stats
         import joblib
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch='1.5*n_jobs')(joblib.delayed(bootstrap_model)(i, n_boots, dataset) for i in range(2, dataset.shape[1]))
@@ -310,6 +319,7 @@ class lin_regression:
         self.mean_r2_adj_df = pd.DataFrame(mean_r2_adj, index=self.features_name, columns=["Mean R-square Adjustment"])
         self.std_r2_adj_df = pd.DataFrame(std_r2_adj, index=self.features_name, columns=["std R-square Adjustment"])
 
+
         self.results = results
 
         return results
@@ -337,6 +347,7 @@ class lin_regression:
         r2_boost = self.r2_boost
         adj_r2_boost = self.adj_r2_boost
 
+
         if values == "mean_P-value":
             return pval
         elif values == "mean_Beta":
@@ -363,12 +374,14 @@ class lin_regression:
             return adj_r2_boost
         else:
             return resampling_results_df
-  
+
+    
     def save_boostrap(self, path_save, sample_type="No type"):
         self.path_save = path_save
         self.sample_type = sample_type
         results = self.results
         return np.save('{}/{}_bootstrap_results_univariate[{}_{}].npy'.format(path_save, sample_type, self.label_a, self.label_b), results)
+
 
     def p_value(self):
         pval = self.pval_df
@@ -394,6 +407,7 @@ class lin_regression:
         log2_fc_df = self.l2_df2
         return log2_fc_df
     
+
     def report(self):
 
         '''
@@ -409,19 +423,19 @@ class lin_regression:
         fpval = self.fpval_df
         r2 = self.r2_df
         p_adj = self.qval_df
-        log_2fc = self.l2_df2
-       
+        log_2fc = self.l2_df2        
         stats_table = pd.concat([pval, beta, p_adj, r2, fpval, log_2fc], axis=1)
         self.statstable = stats_table
         return stats_table
+
 
     def metname_df(self, x_position, met_names):
         self.met_names = met_names
         self.x_position = x_position
         y = self.dataset
         ppm = self.features_name
-
         y_df = pd.DataFrame(list(y.iloc[:, 2:].max()), columns=["position_y"], index=ppm)
+
         x_position = list(np.ravel(x_position))
 
         y_pos = list()
@@ -451,7 +465,6 @@ class lin_regression:
         self.label_a = label_a
         self.label_b = label_b
         self.p_value = p_value
-
         if p_value == "p-value":
             pval = self.pval_df
         if p_value == "q-value":
@@ -467,14 +480,12 @@ class lin_regression:
         spectra = pd.DataFrame(dataset.iloc[:, 2:])
         idx_a = dataset.loc[dataset["Target"] == 0].index
         idx_b = dataset.loc[dataset["Target"] == 1].index
-
         #set dataset for plot
         df_a = spectra.loc[idx_a]
         df_b = spectra.loc[idx_b]
 
         meta_a = meta.loc[idx_a]
         meta_b = meta.loc[idx_b]
-
         if self.label_a == None:
             label_a = meta_a.iat[0,0]
         else:
@@ -489,7 +500,6 @@ class lin_regression:
 
         code_a = meta_a.iat[0,1]
         code_b = meta_b.iat[0,1]
-    
         meanX_a = pd.DataFrame(list(df_a.mean(axis=0)), index=ppm, columns=[label_a])
         std_a = pd.DataFrame(list(df_a.std(axis=0)), index=ppm, columns=["std_a"])
         meanX_b = pd.DataFrame(list(df_b.mean(axis=0)), index=ppm, columns=[label_b])
@@ -577,13 +587,17 @@ class lin_regression:
                 size=14
             )
         )
+
         fig.update_layout(xaxis = dict(autorange='reversed'))
         # Show the plot
         self.fig = fig
+
+
         return fig.show()
 
     def manhattan_plot(self, plot_title=None, alpha=None):
-     
+
+        
         self.plot_title = plot_title
         x = self.features_name
         pval = self.mean_p_df
@@ -632,13 +646,10 @@ class lin_regression:
                     'x':0.5,
                     'xanchor': 'center',
                     'yanchor': 'top'})
-
         fig.update_layout(xaxis = dict(autorange='reversed'))
-
         self.fig = fig
-
         return fig.show()
-           
+    
     def html_plot(self, plot_name, path_save=None):
         self.path_save = path_save
         self.plot_name = plot_name
@@ -649,6 +660,7 @@ class lin_regression:
         fig = self.fig
         return fig.write_image("{}/{}{}{}_vs_{}.png".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
 
+
     def find_pval(self, ppm):
         stats_table = self.stats_table
         self.ppm = ppm
@@ -657,20 +669,16 @@ class lin_regression:
         pos_y = stats_table.iloc[idx, 0]
         print("<i>p-value</i>: {pos_y.f}")
 
-    def volcano_plot(self, plot_title=None):
 
+    def volcano_plot(self, plot_title=None):
         log2_fc = self.l2_df2
         pval = self.pval_df
         beta = self.beta_df
-
         log10_p = -np.log10(pval)
         log10_p.columns=["-Log10 P-value"]
-
         df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
         df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
-
         # x and y given as DataFrame columns
-
         fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", text=df_vol.index,
                         color="Beta", range_color=[-1, 1],
                         color_continuous_scale="RdBu",
@@ -684,7 +692,6 @@ class lin_regression:
                 'x':0.5,
                 'xanchor': 'center',
                 'yanchor': 'top'})
-
         fig.add_shape(type='line', x0=-10, y0=2, x1=10, y1=2,
               line=dict(color='red', width=2, dash='dot'))
 
@@ -693,6 +700,5 @@ class lin_regression:
               
         fig.add_shape(type='line', x0=1, y0=0, x1=1, y1=10,
               line=dict(color='red', width=2, dash='dot'))
-
         self.fig = fig
         return fig.show()
