@@ -725,6 +725,5 @@ class lin_regression:
 
         self.fig = fig
 
-
         return fig.show()
 
