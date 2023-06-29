@@ -1,3 +1,4 @@
+
 # _*_ coding: utf-8 _*_
 
 # Package
@@ -18,7 +19,6 @@ import plotly.graph_objects as go
 
 
 __author__ = "aeiwz"
-
 
 class lin_regression:
     
@@ -65,8 +65,6 @@ class lin_regression:
 
     """
 
-   
-
     def __init__(self, x, target, label, features_name):
         
     
@@ -77,10 +75,12 @@ class lin_regression:
         self.features_name = features_name
         self.label = label
     
-
-
     def create_dataset(self):
 
+        '''# Create dataset to do linear regression model
+        dataset = test.create_dataset()
+        print(test.show_dataset()) # Show the created dataset
+        '''
 
         # Create new dataset
 
@@ -107,11 +107,16 @@ class lin_regression:
 
     def fit_model(self, datasets=None, adj_method=None):
 
+        '''# Fit model with linear regression
+        # The method could be one of the following:
+        # 'bonferroni', 'sidak', 'holm-sidak', 'holm', 'simes-hochberg', 'hommel', 'fdr_bh', 'fdr_by', 'fdr_tsbh', 'fdr_tsbky'
+        # 'fdr_bh' is Benjamini/Hochberg method for p-value adjustment
+        test.fit_model(dataset, method='fdr_bh') 
+        '''
+
         dataset = self.dataset
         self.adj_method = adj_method
 
-
-    
         if adj_method == "bonferroni":
             adj_name = "one-step correction"
         elif adj_method == "sidak":
@@ -139,11 +144,6 @@ class lin_regression:
 
         l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
         df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
-
-
-        
-        
-
 
         # Lists to store the information
         # p-value for the genotype effect
@@ -205,6 +205,18 @@ class lin_regression:
 
     def resampling(self, dataset=None, n_jobs=8, verbose=5, n_boots=50, adj_method=None):
 
+        '''
+
+        # For bootstrap resampling:
+        # The parameters are:
+        # dataset: the dataset to bootstrap resample
+        # n_jobs: the number of CPU cores to use (-1 for all cores)
+        # verbose: the verbosity level of the joblib library
+        # n_boots: the number of bootstrap iterations
+        # adj_method: the p-value adjustment method (same as above)
+        test.resampling(dataset=dataset, n_jobs=8, verbose=5, n_boots=50, adj_method='fdr_bh')
+        '''
+
         self.n_jobs=n_jobs
         self.n_boot=n_boots
         self.verbose = verbose
@@ -238,9 +250,7 @@ class lin_regression:
         # Define function that can be called by each worker:
         def bootstrap_model(variable, n_boot, dataset):
 
-           
-
-            boot_stats = np.zeros((n_boot, 7))
+            boot_stats = np.zeros((n_boot, 5))
             
             for boot_iter in range(n_boot):
                 boot_sample = np.random.choice(dataset.shape[0], dataset.shape[0], replace=True)
@@ -271,7 +281,13 @@ class lin_regression:
         mean_r2_adj = np.array([x[:, 4].mean() for x in results])
         std_r2_adj = np.array([x[:, 4].std() for x in results])
 
-       
+        results_2 = np.array(results)
+
+        self.p_val_boost = pd.DataFrame(results_2[:, :, 0], index=self.features_name)
+        self.beta_boost = pd.DataFrame(results_2[:, :, 1], index=self.features_name)
+        self.f_pval_boost = pd.DataFrame(results_2[:, :, 2], index=self.features_name)
+        self.r2_boost = pd.DataFrame(results_2[:, :, 3], index=self.features_name)
+        self.adj_r2_boost = pd.DataFrame(results_2[:, :, 4], index=self.features_name)
 
         if adj_method == None:
             
@@ -288,10 +304,6 @@ class lin_regression:
             pf_est = multipletests(mean_pf, alpha=0.05, method=adj_method)
             fqval = pf_est[1]
             self.mean_qval_df = pd.DataFrame(qval, index=self.features_name, columns=["q_value"])
-            
-
-        
-   
 
         self.mean_p_df = pd.DataFrame(mean_p, index=self.features_name, columns=["Mean P-value"])
         self.std_p_df = pd.DataFrame(std_p, index=self.features_name, columns=["std P-value"])
@@ -304,14 +316,19 @@ class lin_regression:
         self.mean_r2_adj_df = pd.DataFrame(mean_r2_adj, index=self.features_name, columns=["Mean R-square Adjustment"])
         self.std_r2_adj_df = pd.DataFrame(std_r2_adj, index=self.features_name, columns=["std R-square Adjustment"])
 
-
         self.results = results
 
         return results
 
-
     def resampling_df(self, values=None):
-        
+
+        '''
+        # To get the resampling results:
+        resampling_df = test.resampling_df(values='all')
+        print(resampling_df)
+
+        '''
+
         pval = pd.concat([self.mean_p_df, self.std_p_df], axis=1)
         beta = pd.concat([self.mean_beta_df, self.std_beta_df], axis=1)
         fp_val = pd.concat([self.mean_pf_df, self.std_pf_df], axis=1)
@@ -320,33 +337,45 @@ class lin_regression:
         resampling_results_df = pd.concat([pval, beta, fp_val, R2, R2_adj, self.mean_qval_df], axis=1)
         self.resampling_results_df = resampling_results_df
 
+        pval_boost = self.p_val_boost
+        beta_boost = self.beta_boost
+        f_pval_boost = self.f_pval_boost
+        r2_boost = self.r2_boost
+        adj_r2_boost = self.adj_r2_boost
 
-        if values == "P-value":
+
+        if values == "mean_P-value":
             return pval
-        elif values == "Beta":
+        elif values == "mean_Beta":
             return beta
-        elif values == "P F-test":
+        elif values == "mean_P_F-test":
             return fp_val
-        elif values == "R2":
+        elif values == "mean_R2":
             return R2
-        elif values == "R2 adj":
+        elif values == "mean_R2 adj":
             return R2_adj
-        elif values == "q-value":
+        elif values == "mean_q-value":
             return self.mean_qval_df
-        elif values == "q-value F-test":
+        elif values == "mean_q-value F-test":
             return self.mean_fqval_df
+        elif values == 'P-value':
+            return pval_boost
+        elif values == 'Beta':
+            return beta_boost
+        elif values == 'P-value Ftest':
+            return f_pval_boost
+        elif values == 'R2':
+            return r2_boost
+        elif values == 'Adjust R2':
+            return adj_r2_boost
         else:
             return resampling_results_df
-
-    
+ 
     def save_boostrap(self, path_save, sample_type="No type"):
         self.path_save = path_save
         self.sample_type = sample_type
         results = self.results
         return np.save('{}/{}_bootstrap_results_univariate[{}_{}].npy'.format(path_save, sample_type, self.label_a, self.label_b), results)
-
-
-
 
     def p_value(self):
         pval = self.pval_df
@@ -372,8 +401,14 @@ class lin_regression:
         log2_fc_df = self.l2_df2
         return log2_fc_df
     
-
     def report(self):
+
+        '''
+        # Get report
+        # This will return a report dataset as p-value, Beta, R_square, and p-value of F-test in one dataframe
+        report = test.report()
+        print(report)
+        '''
 
         # Creat report dataframe
         pval = self.pval_df
@@ -382,9 +417,7 @@ class lin_regression:
         r2 = self.r2_df
         p_adj = self.qval_df
         log_2fc = self.l2_df2
-
-
-        
+ 
         stats_table = pd.concat([pval, beta, p_adj, r2, fpval, log_2fc], axis=1)
         self.statstable = stats_table
         return stats_table
@@ -395,9 +428,6 @@ class lin_regression:
         self.x_position = x_position
         y = self.dataset
         ppm = self.features_name
-
-
-
 
 
         y_df = pd.DataFrame(list(y.iloc[:, 2:].max()), columns=["position_y"], index=ppm)
@@ -421,10 +451,6 @@ class lin_regression:
 
         return met_label_df
 
-    
-
-
-
     def spec_uniplot(self ,pval_position=0, sample=None, label_a=None, label_b=None, met_label=False, p_value=None):
 
         self.sample_type = sample
@@ -447,10 +473,6 @@ class lin_regression:
         elif p_value == "boostrap q-value":
             pval = self.mean_qval_df
         #pval.columns=["P-value"]
-
-
-
-
 
         meta = dataset[["Label", "Target"]]
    
@@ -565,7 +587,6 @@ class lin_regression:
         fig.update_traces(textposition='top center').data[0]
         
 
-
         fig.update_layout(
             xaxis_title="𝛿<sub>H</sub> in ppm",
             yaxis_title="Intensity (AU)",
@@ -662,10 +683,7 @@ class lin_regression:
         pos_y = stats_table.iloc[idx, 0]
         print("<i>p-value</i>: {pos_y.f}")
 
-
     def volcano_plot(self, plot_title=None):
-
-        
 
         log2_fc = self.l2_df2
         pval = self.pval_df
@@ -709,8 +727,4 @@ class lin_regression:
 
 
         return fig.show()
-
-        
-        
-
 
