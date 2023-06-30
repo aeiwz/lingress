@@ -613,12 +613,12 @@ class lin_regression:
         plot_df = pd.concat([pval, q_val, beta, y, R2, log10_pval], axis=1)
 
         fig = px.scatter(plot_df, x=x, y="beta x -log10 q-value", text="q_value",
-                            color="Beta coefficient", range_color=[-1, 1],
+                            color="R2", range_color=[-1, 1],
                             color_continuous_scale="RdBu",
                             
                             labels={"beta x -log10 q-value": "β × (-log<sub>10</sub> <i>q-value</i>)",
                                     "x": "𝛿<sub>H</sub> in ppm",
-                                    "Beta coefficient": "β coefficient",
+                                    "R2": "R<sub>2</sub>",
                                     "text": "<i>q-value</i>"})
 
         if alpha == None:
@@ -641,7 +641,7 @@ class lin_regression:
         
         else:
             fig.update_layout(title={
-                    'text': "<b>Manhattan plot  {}</b>".format(plot_title),
+                    'text': "<b>Manhattan plot {}</b>".format(plot_title),
                     'y':0.98,
                     'x':0.5,
                     'xanchor': 'center',
