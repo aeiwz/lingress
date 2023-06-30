@@ -91,8 +91,8 @@ class lin_regression:
 
         # Create new dataset
 
-        y = pd.Categorical(self.y).codes
-        y = pd.DataFrame(y, index=self.tag.index)
+        y_ = pd.Categorical(self.y).codes
+        y = pd.DataFrame(y_, index=self.tag.index)
         x = self.x
         tag = self.label
         dataset = pd.concat([tag, y, x], axis=1)
@@ -465,6 +465,8 @@ class lin_regression:
         self.label_a = label_a
         self.label_b = label_b
         self.p_value = p_value
+        if p_value == None:
+            pval = self.pval_df
         if p_value == "p-value":
             pval = self.pval_df
         if p_value == "q-value":
