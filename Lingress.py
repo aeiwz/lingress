@@ -83,42 +83,54 @@ class lin_regression:
 
     def create_dataset(self):
 
-        '''# Create dataset to do linear regression model
-        dataset = test.create_dataset()
-        print(test.show_dataset()) # Show the created dataset
+        '''
+        # Create dataset to do linear regression model
+        # dataset = test.create_dataset()
+        # test.show_dataset() # "show_dataset()" function will be return dataset to creat 
         '''
 
 
         # Create new dataset
 
-        y_ = pd.Categorical(self.y).codes
-        y = pd.DataFrame(y_, index=self.tag.index)
-        x = self.x
-        tag = self.label
-        dataset = pd.concat([tag, y, x], axis=1)
+        y_ = pd.Categorical(self.y).codes # Convert the target to categorical variable codes (0, 1) 
+        y = pd.DataFrame(y_, index=self.tag.index) # Create a dataframe with the target variable codes and index from the original dataframe 
+        x = self.x # Create a dataframe with the spectra data and index from the original dataframe 
+        tag = self.label # Create a dataframe with the spectra data and index from the original dataframe 
+        dataset = pd.concat([tag, y, x], axis=1) # Concatenate the target and spectra dataframes into one dataframe 
 
         # Prepare the dataframe for use with model fitting
-        dataset.columns = dataset.columns.astype(str)
-        varnames = []
-        for i in tqdm(range(len(dataset.columns[2::])), desc="Creating data frame"):
-            varnames.append("ppm_{}".format(i))
-        newnames = ['Label', 'Target']
-        newnames = newnames + varnames
-        dataset.columns = newnames
+        dataset.columns = dataset.columns.astype(str) # Convert the column names to strings 
+        varnames = [] # Create an empty list to store the variable names 
+        for i in tqdm(range(len(dataset.columns[2::])), desc="Creating data frame"): # Loop through the columns in the dataframe 
+            varnames.append("ppm_{}".format(i)) # Append the variable names to the list 
+        newnames = ['Label', 'Target'] # Create a list with the new column names 
+        newnames = newnames + varnames # Append the variable names to the list of new column names 
+        dataset.columns = newnames # Assign the new column names to the dataframe 
         
-        self.dataset = dataset
-        return dataset
+        self.dataset = dataset # Assign the dataframe to the class attribute 
+        return dataset # Return the dataframe 
 
-    def show_dataset(self):
-        return self.dataset
+    def show_dataset(self): # Show dataset to creat model 
+        return self.dataset # Return the dataframe 
 
     def fit_model(self, datasets=None, adj_method=None):
 
-        '''# Fit model with linear regression
-        # The method could be one of the following:
-        # 'bonferroni', 'sidak', 'holm-sidak', 'holm', 'simes-hochberg', 'hommel', 'fdr_bh', 'fdr_by', 'fdr_tsbh', 'fdr_tsbky'
-        # 'fdr_bh' is Benjamini/Hochberg method for p-value adjustment
-        test.fit_model(dataset, method='fdr_bh') 
+        '''
+        # fit model with linear regression 
+
+        # test.fit_model(dataset, method = "fdr_bh")
+
+        # default methode is "fdr_bh"
+        # - `bonferroni` : one-step correction
+        # - `sidak` : one-step correction
+        # - `holm-sidak` : step down method using Sidak adjustments
+        # - `holm` : step-down method using Bonferroni adjustments
+        # - `simes-hochberg` : step-up method  (independent)
+        # - `hommel` : closed method based on Simes tests (non-negative)
+        # - `fdr_bh` : Benjamini/Hochberg  (non-negative)
+        # - `fdr_by` : Benjamini/Yekutieli (negative)
+        # - `fdr_tsbh` : two stage fdr correction (non-negative)
+        # - `fdr_tsbky` : two stage fdr correction (non-negative)
         '''
 
         dataset = self.dataset
@@ -146,15 +158,15 @@ class lin_regression:
             adj_name = "two stage fdr correction (non-negative)"
 
         
-        a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
-        b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
+        a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean() # Mean of the spectra for the first group 
+        b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean() # Mean of the spectra for the second group 
 
-        l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0))
-        df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
+        l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0)) # Calculate the log2 fold change between the two groups
+        df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name) # Create a dataframe with the log2 fold change values and the variable names
 
         # Lists to store the information
         # p-value for the genotype effect
-        self.pval = list()
+        self.pval = list() 
         # regression coefficient for the genotype effect
         self.beta = list()
         # P-value for the F-test 
@@ -166,7 +178,7 @@ class lin_regression:
         for curr_variable in tqdm(dataset.iloc[:, 2:], desc="Features processed"):
             # Formula for current variable 
             fm = curr_variable + ' ~ C(Target)'
-            mod = smf.ols(formula = fm, data=dataset)
+            mod = smf.ols(formula = fm, data=dataset) # Fit the model 
             res = mod.fit()
             self.pval.append(res.pvalues[1])
             self.beta.append(res.params[1])
@@ -211,17 +223,42 @@ class lin_regression:
     def resampling(self, dataset=None, n_jobs=8, verbose=5, n_boots=50, adj_method=None):
 
         '''
-
-        # For bootstrap resampling:
-        # The parameters are:
-        # dataset: the dataset to bootstrap resample
-        # n_jobs: the number of CPU cores to use (-1 for all cores)
-        # verbose: the verbosity level of the joblib library
-        # n_boots: the number of bootstrap iterations
-        # adj_method: the p-value adjustment method (same as above)
-        test.resampling(dataset=dataset, n_jobs=8, verbose=5, n_boots=50, adj_method='fdr_bh')
+        This function performs a resampling of the dataset to calculate the p-value of the log2 fold change and the regression coefficient. 
+        The resampling is performed by bootstrapping the dataset. 
+        The number of bootstraps is defined by the user. 
+        The function returns a dataframe with the p-value and the regression coefficient for each variable.
+        The function also returns a dataframe with the log2 fold change for each variable.
+        The function also returns a dataframe with the q-value for each variable.
+        The function also returns a dataframe with the p-value of the F-test for each variable.
+        The function also returns a dataframe with the q-value of the F-test for each variable.
+        
+        Parameters
+        ----------
+        dataset : pandas dataframe
+            The dataset to be analyzed. The dataset must be a pandas dataframe with the first column containing the sample names and the second column containing the group names. The rest of the columns must contain the spectral variables.
+        n_jobs : int, optional
+            Number of jobs to run in parallel. The default is 8.
+        verbose : int, optional
+            Verbosity level. The default is 5.
+        n_boots : int, optional
+            Number of bootstraps. The default is 50.
+        adj_method : str, optional  
+            Method used to adjust the p-value. The default is None. The options are:
+                - None: No adjustment
+                - "bonferroni": one-step correction
+                - "sidak": one-step correction
+                - "holm-sidak": step down method using Sidak adjustments
+                - "holm": step-down method using Bonferroni adjustments
+                - "simes-hochberg": step-up method  (independent)
+                - "hommel": closed method based on Simes tests (non-negative)
+                - "fdr_bh": Benjamini/Hochberg (non-negative)
+                - "fdr_by": Benjamini/Yekutieli (negative)
+        Returns
+        -------
+        None.
+    
         '''
-
+        
         self.n_jobs=n_jobs
         self.n_boot=n_boots
         self.verbose = verbose
@@ -255,18 +292,28 @@ class lin_regression:
         # Define function that can be called by each worker:
         def bootstrap_model(variable, n_boot, dataset):
 
-            boot_stats = np.zeros((n_boot, 5))
+            boot_stats = np.zeros((n_boot, 10))
             
-            for boot_iter in range(n_boot):
-                boot_sample = np.random.choice(dataset.shape[0], dataset.shape[0], replace=True)
-                fm = dataset.columns[variable] + ' ~ C(Target)'
-                mod = smf.ols(formula = fm, data=dataset.iloc[boot_sample, :])
-                res = mod.fit()
+            for boot_iter in range(n_boot): # for each bootstrap iteration (i.e. each resample) 
+                boot_sample = np.random.choice(dataset.shape[0], dataset.shape[0], replace=True) # sample with replacement from the dataset (i.e. resample) 
+                fm = dataset.columns[variable] + ' ~ C(Target)' # define the formula for the model (i.e. the regression equation) 
+                mod = smf.ols(formula = fm, data=dataset.iloc[boot_sample, :]) # fit the model to the resampled data 
+                res = mod.fit() # extract the results of the model fit 
+                # store the results of the model fit all the bootstrap iterations
                 boot_stats[boot_iter, 0] = res.pvalues[0] # p-value
                 boot_stats[boot_iter, 1] = res.params[0]   # Beta coeficient
                 boot_stats[boot_iter, 2] = res.f_pvalue # p-value of F-test
                 boot_stats[boot_iter, 3] = res.rsquared # R^2
                 boot_stats[boot_iter, 4] = res.rsquared_adj # R^2 adjustment
+                boot_stats[boot_iter, 5] = res.fvalue # F-value
+                boot_stats[boot_iter, 6] = res.df_model # df model
+                boot_stats[boot_iter, 7] = res.df_resid # df resid
+                boot_stats[boot_iter, 8] = res.df_model # df model
+                boot_stats[boot_iter, 9] = res.df_resid # df resid
+                
+
+                
+
                
             return boot_stats
         import joblib
