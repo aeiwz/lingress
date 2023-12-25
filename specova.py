@@ -22,7 +22,7 @@ import plotly.graph_objects as go
 
 __author__ = "aeiwz"
 
-class pyanova():
+class specova():
     """
     A class used to perform ANOVA analysis on a dataset
 
