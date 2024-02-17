@@ -699,15 +699,6 @@ class lin_regression:
         self.fig = fig
         return fig.show()
     
-    def html_plot(self, plot_name, path_save=None):
-        self.path_save = path_save
-        self.plot_name = plot_name
-        fig = self.fig
-        return fig.write_html("{}/{}{}{}_vs_{}.html".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
-    def png_plot(self, path_save=None):
-        self.path_save = path_save
-        fig = self.fig
-        return fig.write_image("{}/{}{}{}_vs_{}.png".format(path_save, self.sample_type,plot_name, self.label_a, self.label_b))
 
 
     def find_pval(self, ppm):
@@ -719,7 +710,18 @@ class lin_regression:
         print("<i>p-value</i>: {pos_y.f}")
 
 
-    def volcano_plot(self, plot_title=None):
+    def volcano_plot(self):
+        
+        dataset = self.dataset
+        meta = self.dataset[["Label", "Target"]]
+        
+        label_a = meta["Label"].unique()[0]
+        label_b = meta["Label"].unique()[1]
+        
+        self.label_a = label_a
+        self.label_b = label_b
+        
+
         log2_fc = self.l2_df2
         pval = self.pval_df
         beta = self.beta_df
@@ -727,20 +729,46 @@ class lin_regression:
         log10_p.columns=["-Log10 P-value"]
         df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
         df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
+        
+        p_ = ["T" if df_vol.at[i, "-Log10 P-value"] >= 2 else "F" for i in df_vol.index]
+        fc_ = ["T" if df_vol.at[i, "Log2 FC"] >= 1 or df_vol.at[i, "Log2 FC"] <= -1 else "F" for i in df_vol.index]
+        
+        df_vol["p_"] = p_
+        df_vol["fc_"] = fc_
+        
+        colour_list = []
+        for i in range(len(p_)):
+            if p_[i] == "T" and fc_[i] == "T":
+                colour_list.append("Red")
+            else:
+                colour_list.append("Gray")
+                
+        df_vol["colour"] = colour_list   
+                
         # x and y given as DataFrame columns
-        fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", text=df_vol.index,
-                        color="Beta", range_color=[-1, 1],
-                        color_continuous_scale="RdBu",
+        fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", height=900, width=1600,
+                        text=df_vol.index,
+                        color="colour",color_discrete_map = {"Red": "#E02000", 
+                                                             "Gray": "#D9D9D9"},
                         labels={"-Log10 P-value": "-log<sub>10</sub> (<i>p-value</i>)",
-                                "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",
-                                "Beta": "β coefficient"})
+                                "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",}
+                        )
+        
+
         fig.update_layout(
                             title={
-                'text': "<b>Volcano plot {}</b>".format(plot_title),
+                'text': "<b>Volcano plot of {} vs {}</b>".format(label_a, label_b),
                 'y':0.98,
                 'x':0.5,
                 'xanchor': 'center',
                 'yanchor': 'top'})
+        
+        #Hide legend
+        fig.update_traces(showlegend=False)
+        #Hide text label
+        fig.update_traces(textposition='top center').data[0]
+        
+        
         fig.add_shape(type='line', x0=-10, y0=2, x1=10, y1=2,
               line=dict(color='red', width=2, dash='dot'))
 
@@ -750,4 +778,18 @@ class lin_regression:
         fig.add_shape(type='line', x0=1, y0=0, x1=1, y1=10,
               line=dict(color='red', width=2, dash='dot'))
         self.fig = fig
+        
         return fig.show()
+    
+    
+    #Save figure
+    def html_plot(self, plot_name = "Plot", path_save=None):
+        self.path_save = path_save
+        self.plot_name = plot_name
+        fig = self.fig
+        return fig.write_html("{}/{}.html".format(path_save, plot_name))
+    
+    def png_plot(self, plot_name = "Plot", path_save=None):
+        self.path_save = path_save
+        fig = self.fig
+        return fig.write_image("{}/{}.png".format(path_save, plot_name))
