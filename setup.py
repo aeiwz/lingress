@@ -19,8 +19,8 @@ setup(
   author = 'aeiwz',                 
   author_email = 'theerayut_aeiw_123@hotmail.com',     
   url = 'https://github.com/aeiwz/lingress.git',  
-  download_url = 'https://github.com/aeiwz/metbit/archive/refs/tags/V1.0.7.tar.gz',  
-  keywords = ['Omics', 'Chemometrics', 'Visualization', 'Data Analysis'],
+  download_url = 'https://github.com/aeiwz/lingress/archive/refs/tags/v1.1.0.tar.gz',  
+  keywords = ['Omics', 'Chemometrics', 'Visualization', 'Data Analysis', 'Univariate', 'Linear Regression'],
   install_requires=[            
           'scikit-learn',
           'pandas',
