@@ -8,7 +8,10 @@ Functionally, this program strives to fit a model of metabolic profiles through 
 ```bash
 pip install lingress
 ```
-    
+
+## **Example code**
+
+
     for examples:
         #set parameter
         x = Metabolic profiles dataset (dataset X)
@@ -19,7 +22,7 @@ pip install lingress
         target = meta['Class']
         ppm = spectra_X.columns.astype(float) # columns name of example data is ppm of spectra
 
-        test = lin_regression(X, target, ppm)
+        test = lin_regression(X, target=target, label=target, features_name=ppm)
 
         #Create dataset to do linear regression model
 
@@ -45,3 +48,4 @@ pip install lingress
         test.report() # "report()" function will be return report dataset as p-value, Beta, R_square, and p-value of F-test in one dataframe
 
         # or u can return each value can be use .p_value(), .beta_value, .r_square, or .f_test()
+
