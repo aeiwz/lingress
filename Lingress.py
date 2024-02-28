@@ -1,5 +1,4 @@
-
-# _*_ coding: utf-8 _*_
+# -*- coding: utf-8 -*-
 
 # Package
 # Import the required python packages including 
@@ -16,6 +15,7 @@ from sklearn.preprocessing import scale
 from tqdm import tqdm
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 
 
 
@@ -39,7 +39,7 @@ class lin_regression:
         target = meta['Class']
         ppm = spectra_X.columns.astype(float) # columns name of example data is ppm of spectra
 
-        test = lin_regression(X, target, ppm)
+        test = lin_regression(X, target=target, label=target, features_name=ppm)
 
         #Create dataset to do linear regression model
 
@@ -71,6 +71,25 @@ class lin_regression:
    
     def __init__(self, x, target, label, features_name):
         
+        #check x must be dataframe or array
+        if not isinstance(x, (pd.DataFrame, np.ndarray)):
+            raise ValueError("x must be dataframe or array")
+        
+        #check target must be dataframe or array
+        if not isinstance(target, (pd.DataFrame, np.ndarray)):
+            raise ValueError("target must be dataframe or array")
+        
+        #check label must be dataframe or array
+        if not isinstance(label, (pd.DataFrame, np.ndarray)):
+            raise ValueError("label must be dataframe or array")
+        
+        #check features_name must be list or 1D array
+        if not isinstance(features_name, (list, np.ndarray)):
+            raise ValueError("features_name must be list or 1D array")
+        
+        
+        
+        
     
         self.x = x
         self.target = target
@@ -78,16 +97,7 @@ class lin_regression:
         self.tag = target
         self.features_name = features_name
         self.label = label
-    
-
-
-    def create_dataset(self):
-
-        '''
-        # Create dataset to do linear regression model
-        # dataset = test.create_dataset()
-        # test.show_dataset() # "show_dataset()" function will be return dataset to creat 
-        '''
+        
 
 
         # Create new dataset
@@ -107,15 +117,94 @@ class lin_regression:
         newnames = newnames + varnames # Append the variable names to the list of new column names 
         dataset.columns = newnames # Assign the new column names to the dataframe 
         
-        self.dataset = dataset # Assign the dataframe to the class attribute 
-        return dataset # Return the dataframe 
+        # replace which label value contain / to _
+        dataset['Label'] = dataset['Label'].str.replace("/", "_")
+        
+        
+        self.label_a = str(dataset[dataset['label'] == 0]['name'].unique()[0])
+        self.label_b = str(dataset[dataset['label'] == 1]['name'].unique()[0])
+        
+        self.dataset = dataset # Assign the dataframe to the class attribute
+        
+    
+
+
+    def create_dataset(self, x=None, target=None, label=None, features_name=None):
+
+        '''
+        # Create dataset to do linear regression model
+        # dataset = test.create_dataset()
+        # test.show_dataset() # "show_dataset()" function will be return dataset to creat 
+        '''
+        
+        if x == None:
+            x = self.x
+        else:
+            x = x
+        if target == None:
+            target = self.target
+        else:
+            target = target
+        if label == None:
+            label = self.label
+        else:
+            label = label
+        if features_name == None:
+            features_name = self.features_name
+        else:
+            features_name = features_name
+            
+        #check x must be dataframe or array
+        if not isinstance(x, (pd.DataFrame, np.ndarray)):
+            raise ValueError("x must be dataframe or array")
+        
+        #check target must be dataframe or array
+        if not isinstance(target, (pd.DataFrame, np.ndarray)):
+            raise ValueError("target must be dataframe or array")
+        
+        #check label must be dataframe or array
+        if not isinstance(label, (pd.DataFrame, np.ndarray)):
+            raise ValueError("label must be dataframe or array")
+        
+        #check features_name must be list or 1D array
+        if not isinstance(features_name, (list, np.ndarray)):
+            raise ValueError("features_name must be list or 1D array")
+        
+
+        # Create new dataset
+
+        y_ = pd.Categorical(self.y).codes # Convert the target to categorical variable codes (0, 1) 
+        y = pd.DataFrame(y_, index=self.tag.index) # Create a dataframe with the target variable codes and index from the original dataframe 
+        x = self.x # Create a dataframe with the spectra data and index from the original dataframe 
+        tag = self.label # Create a dataframe with the spectra data and index from the original dataframe 
+        dataset = pd.concat([tag, y, x], axis=1) # Concatenate the target and spectra dataframes into one dataframe 
+
+        # Prepare the dataframe for use with model fitting
+        dataset.columns = dataset.columns.astype(str) # Convert the column names to strings 
+        varnames = [] # Create an empty list to store the variable names 
+        for i in tqdm(range(len(dataset.columns[2::])), desc="Creating data frame"): # Loop through the columns in the dataframe 
+            varnames.append("ppm_{}".format(i)) # Append the variable names to the list 
+        newnames = ['Label', 'Target'] # Create a list with the new column names 
+        newnames = newnames + varnames # Append the variable names to the list of new column names 
+        dataset.columns = newnames # Assign the new column names to the dataframe 
+        
+        # replace which label value contain / to _
+        dataset['Label'] = dataset['Label'].str.replace("/", "_")
+        
+        
+        self.label_a = str(dataset[dataset['label'] == 0]['name'].unique()[0])
+        self.label_b = str(dataset[dataset['label'] == 1]['name'].unique()[0])
+        
+        self.dataset = dataset # Assign the dataframe to the class attribute
+        
 
     def show_dataset(self): # Show dataset to creat model 
         return self.dataset # Return the dataframe 
 
-    def fit_model(self, datasets=None, adj_method=None):
+    def fit_model(self, datasets=None, adj_method=None, alpha=0.05):
 
         '''
+
         # fit model with linear regression 
 
         # test.fit_model(dataset, method = "fdr_bh")
@@ -132,9 +221,16 @@ class lin_regression:
         # - `fdr_tsbh` : two stage fdr correction (non-negative)
         # - `fdr_tsbky` : two stage fdr correction (non-negative)
         '''
-
-        dataset = self.dataset
-        self.adj_method = adj_method
+        self.alpha = alpha
+        
+        if datasets == None:
+            datasets = datasets
+        else:
+            dataset = self.dataset
+        if adj_method == None:
+            adj_method = adj_method
+        else:
+            self.adj_method = adj_method
    
         if adj_method == "bonferroni":
             adj_name = "one-step correction"
@@ -161,6 +257,7 @@ class lin_regression:
         a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean() # Mean of the spectra for the first group 
         b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean() # Mean of the spectra for the second group 
 
+        
         l2fc = np.log2(np.nan_to_num(np.divide(a, b), nan=0)) # Calculate the log2 fold change between the two groups
         df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name) # Create a dataframe with the log2 fold change values and the variable names
 
@@ -177,13 +274,14 @@ class lin_regression:
         # Fit each column with a spectral variable
         for curr_variable in tqdm(dataset.iloc[:, 2:], desc="Features processed"):
             # Formula for current variable 
-            fm = curr_variable + ' ~ C(Target)'
+            fm = curr_variable + ' ~ C(Target)' # Define the formula for the model (i.e. the regression equation)
             mod = smf.ols(formula = fm, data=dataset) # Fit the model 
             res = mod.fit()
             self.pval.append(res.pvalues[1])
             self.beta.append(res.params[1])
             self.fpval.append(res.f_pvalue)
             self.r2.append(res.rsquared)
+
 
         a = dataset.loc[dataset["Target"] == 0].iloc[:, 2:].mean()
         b = dataset.loc[dataset["Target"] == 1].iloc[:, 2:].mean()
@@ -192,10 +290,12 @@ class lin_regression:
         l2_df = pd.DataFrame(l2fc, columns=["Log2 Fold change"], index=self.features_name)
         self.l2_df2 = l2_df.fillna(0)          
        
+        
         self.pval_df = pd.DataFrame(self.pval, index=self.features_name, columns=["P-value"])
         self.beta_df = pd.DataFrame(self.beta, index=self.features_name, columns=["Beta"])
         self.fpval_df = pd.DataFrame(self.fpval, index=self.features_name, columns=["pval_F-test"])
         self.r2_df = pd.DataFrame(self.r2, index=self.features_name, columns=["R2"])
+        
 
         if adj_method == None:
             
@@ -207,9 +307,9 @@ class lin_regression:
 
         else:
             adj_method = self.adj_method
-            p_est = multipletests(self.pval, alpha=0.05, method=adj_method)
+            p_est = multipletests(self.pval, alpha=alpha, method=adj_method)
             qval = p_est[1]
-            pf_est = multipletests(self.fpval, alpha=0.05, method=adj_method)
+            pf_est = multipletests(self.fpval, alpha=alpha, method=adj_method)
             fqval = pf_est[1]
             self.qval_df = pd.DataFrame(qval, index=self.features_name, columns=["q_value"])
             self.fqval_df = pd.DataFrame(fqval, index=self.features_name, columns=["q_value (F-test)"])
@@ -219,10 +319,14 @@ class lin_regression:
             return print("No adjustment p-value Done")
         else:
             return print("adjustment p-value with {} Done".format(adj_name))
+        
+        self.lin_res = res
+        return self.lin_res
 
-    def resampling(self, dataset=None, n_jobs=8, verbose=5, n_boots=50, adj_method=None):
+    def resampling(self, dataset=None, n_jobs=4, verbose=1, n_boots=50, adj_method=None):
 
         '''
+        
         This function performs a resampling of the dataset to calculate the p-value of the log2 fold change and the regression coefficient. 
         The resampling is performed by bootstrapping the dataset. 
         The number of bootstraps is defined by the user. 
@@ -236,8 +340,8 @@ class lin_regression:
         ----------
         dataset : pandas dataframe
             The dataset to be analyzed. The dataset must be a pandas dataframe with the first column containing the sample names and the second column containing the group names. The rest of the columns must contain the spectral variables.
-        n_jobs : int, optional
-            Number of jobs to run in parallel. The default is 8.
+        n_jobs : int, optional (default 4)
+            Number of jobs to run in parallel. The default is 4.
         verbose : int, optional
             Verbosity level. The default is 5.
         n_boots : int, optional
@@ -292,7 +396,7 @@ class lin_regression:
         # Define function that can be called by each worker:
         def bootstrap_model(variable, n_boot, dataset):
 
-            boot_stats = np.zeros((n_boot, 10))
+            boot_stats = np.zeros((n_boot, 10)) # create an empty array to store the results of the bootstrap iterations
             
             for boot_iter in range(n_boot): # for each bootstrap iteration (i.e. each resample) 
                 boot_sample = np.random.choice(dataset.shape[0], dataset.shape[0], replace=True) # sample with replacement from the dataset (i.e. resample) 
@@ -310,9 +414,8 @@ class lin_regression:
                 boot_stats[boot_iter, 7] = res.df_resid # df resid
                 boot_stats[boot_iter, 8] = res.df_model # df model
                 boot_stats[boot_iter, 9] = res.df_resid # df resid
-                
-
-                
+ 
+            self.res = res
 
                
             return boot_stats
@@ -427,7 +530,7 @@ class lin_regression:
         self.path_save = path_save
         self.sample_type = sample_type
         results = self.results
-        return np.save('{}/{}_bootstrap_results_univariate[{}_{}].npy'.format(path_save, sample_type, self.label_a, self.label_b), results)
+        return np.save(f'{path_save}/{sample_type}_bootstrap_results_[{self.label_a}_vs_{self.label_b}].npy', results)
 
 
     def p_value(self):
@@ -509,8 +612,17 @@ class lin_regression:
         dataset = self.dataset
         ppm = self.features_name
         self.pval_position = pval_position
-        self.label_a = label_a
-        self.label_b = label_b
+        
+        if label_a == None:
+            label_a = self.label_a
+        else:
+            label_a = label_a
+        if label_b == None:
+            label_b = self.label_b
+        else:
+            label_b = label_b
+
+        
         self.p_value = p_value
         if p_value == None:
             pval = self.pval_df
@@ -535,17 +647,7 @@ class lin_regression:
 
         meta_a = meta.loc[idx_a]
         meta_b = meta.loc[idx_b]
-        if self.label_a == None:
-            label_a = meta_a.iat[0,0]
-        else:
-            label_a = label_a
-        if self.label_b == None:
-            label_b = meta_b.iat[0,0]
-        else:
-            label_b = label_b
-            
-        self.label_a = label_a
-        self.label_b = label_b
+
 
         code_a = meta_a.iat[0,1]
         code_b = meta_b.iat[0,1]
@@ -642,7 +744,7 @@ class lin_regression:
         self.fig = fig
 
 
-        return fig.show()
+        return fig
 
     def manhattan_plot(self, plot_title=None, alpha=None):
 
@@ -710,16 +812,39 @@ class lin_regression:
         print("<i>p-value</i>: {pos_y.f}")
 
 
-    def volcano_plot(self):
+    def volcano_plot(self, p_val_cut_off=2, fc_cut_off=2, height = 900, width = 1600):
+        
+        '''
+        # Volcano plot
+        # test.volcano_plot(p_val_cut_off=2, fc_cut_off=2)
+        # p_val_cut_off = 2
+        # fc_cut_off = 2
+        # default p_val_cut_off = 2
+        # default fc_cut_off = 2
+
+        '''
+        
+        #check p-value and fold change cut-off must be numeric
+        if not isinstance(p_val_cut_off, (int, float)):
+            raise ValueError("p_val_cut_off must be numeric")
+        if not isinstance(fc_cut_off, (int, float)):
+            raise ValueError("fc_cut_off must be numeric")
+        
+        #check height and width must be numeric
+        if not isinstance(height, (int, float)):
+            raise ValueError("height must be numeric")
+        if not isinstance(width, (int, float)):
+            raise ValueError("width must be numeric")
+        
+        
+        height_ = height
+        width_ = width
         
         dataset = self.dataset
         meta = self.dataset[["Label", "Target"]]
         
-        label_a = meta["Label"].unique()[0]
-        label_b = meta["Label"].unique()[1]
-        
-        self.label_a = label_a
-        self.label_b = label_b
+        label_a = self.label_a
+        label_b = self.label_b
         
 
         log2_fc = self.l2_df2
@@ -730,8 +855,8 @@ class lin_regression:
         df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
         df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
         
-        p_ = ["T" if df_vol.at[i, "-Log10 P-value"] >= 2 else "F" for i in df_vol.index]
-        fc_ = ["T" if df_vol.at[i, "Log2 FC"] >= 1 or df_vol.at[i, "Log2 FC"] <= -1 else "F" for i in df_vol.index]
+        p_ = ["T" if df_vol.at[i, "-Log10 P-value"] >= float(p_val_cut_off) else "F" for i in df_vol.index]
+        fc_ = ["T" if df_vol.at[i, "Log2 FC"] >= float(fc_cut_off) or df_vol.at[i, "Log2 FC"] <= -float(fc_cut_off) else "F" for i in df_vol.index]
         
         df_vol["p_"] = p_
         df_vol["fc_"] = fc_
@@ -739,17 +864,17 @@ class lin_regression:
         colour_list = []
         for i in range(len(p_)):
             if p_[i] == "T" and fc_[i] == "T":
-                colour_list.append("Red")
+                colour_list.append("Pass")
             else:
-                colour_list.append("Gray")
+                colour_list.append("Reject")
                 
         df_vol["colour"] = colour_list   
                 
         # x and y given as DataFrame columns
-        fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", height=900, width=1600,
+        fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", height=height_, width=width_,
                         text=df_vol.index,
-                        color="colour",color_discrete_map = {"Red": "#E02000", 
-                                                             "Gray": "#D9D9D9"},
+                        color="colour",color_discrete_map = {"Pass": "#E02000", 
+                                                             "Reject": "#D9D9D9"},
                         labels={"-Log10 P-value": "-log<sub>10</sub> (<i>p-value</i>)",
                                 "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",}
                         )
@@ -769,27 +894,149 @@ class lin_regression:
         fig.update_traces(textposition='top center').data[0]
         
         
-        fig.add_shape(type='line', x0=-10, y0=2, x1=10, y1=2,
+        fig.add_shape(type='line', x0=-10, y0=p_val_cut_off, x1=10, y1=p_val_cut_off,
               line=dict(color='red', width=2, dash='dot'))
 
-        fig.add_shape(type='line', x0=-1, y0=0, x1=-1, y1=10,
+        fig.add_shape(type='line', x0=-fc_cut_off, y0=0, x1=-fc_cut_off, y1=10,
               line=dict(color='red', width=2, dash='dot'))
               
-        fig.add_shape(type='line', x0=1, y0=0, x1=1, y1=10,
+        fig.add_shape(type='line', x0=fc_cut_off, y0=0, x1=fc_cut_off, y1=10,
               line=dict(color='red', width=2, dash='dot'))
         self.fig = fig
         
-        return fig.show()
-    
+        return fig    
     
     #Save figure
-    def html_plot(self, plot_name = "Plot", path_save=None):
-        self.path_save = path_save
-        self.plot_name = plot_name
-        fig = self.fig
-        return fig.write_html("{}/{}.html".format(path_save, plot_name))
+    def html_plot(self,fig, plot_name = "Plot", path_save=None):
+        
+        # check path_save must be directory
+        if not os.path.isdir(path_save):
+            raise ValueError("path_save must be directory")
+        
+        # check if plot name is none, save fig on working directory
+        if plot_name == None:
+            return fig.write_html(f"{plot_name}_{self.label_a}_vs_{self.label_b}.html")
+        
+        else:
+            return fig.write_html(f"{path_save}/{plot_name}_{self.label_a}_vs_{self.label_b}.html")
+        
+
     
-    def png_plot(self, plot_name = "Plot", path_save=None):
-        self.path_save = path_save
-        fig = self.fig
-        return fig.write_image("{}/{}.png".format(path_save, plot_name))
+    def png_plot(self,fig, plot_name = "Plot", path_save=None):
+
+        # check path_save must be directory
+        if not os.path.isdir(path_save):
+            raise ValueError("path_save must be directory")
+        
+        # check if plot name is none, save fig on working directory
+        if plot_name == None:
+            return fig.write_image(f"{plot_name}_{self.label_a}_vs_{self.label_b}.png")
+        
+        else:
+            return fig.write_image(f"{path_save}/{plot_name}_{self.label_a}_vs_{self.label_b}.png")
+        
+
+
+
+import numpy as np
+import pandas as pd
+
+
+class unipair:
+
+    def __init__(self, dataset, column_name):
+        
+        meta = dataset
+        self.meta = meta
+        self.column_name = column_name
+        
+
+        """
+        This function takes in a dataframe and a column name and returns the index of the dataframe and the names of the pairs
+        of the unique values in the column.
+        Parameters
+        ----------
+        meta: pandas dataframe
+            The dataframe to be used.
+        column_name: str
+        Unipair(meta, column_name).indexing()
+        
+        """
+        import pandas as pd
+        import numpy as np
+        
+        #check unique values in the column
+        if meta[column_name].nunique() < 3:
+            raise ValueError("Group should contain at least 3 groups")
+        else:
+            pass
+        #check meta is a dataframe
+        if not isinstance(meta, pd.DataFrame):
+            raise ValueError("meta should be a pandas dataframe")
+        #check column_name is a string
+        if not isinstance(column_name, str):
+            raise ValueError("column_name should be a string")
+        
+
+        df = meta
+        y = df[column_name].unique()
+        pairs = []
+        for i in range(len(y)):
+            for j in range(i+1, len(y)):
+                pairs.append([y[i], y[j]])
+        
+        index_ = []
+        for i in range(len(pairs)):
+            inside_index = []
+            for j in range(2):
+                inside_index.append(list((df.loc[df[column_name] == pairs[i][j]]).index))
+            index_list = [inside_index[0] + inside_index[1]]
+            index_.append(index_list[0])
+        pairs
+        index_
+        names = []
+        for i in range(len(pairs)):
+            
+            names.append(str(pairs[i][0]) + "_vs_" + str(pairs[i][1]))
+            #check names if contain / replace with _ 
+            names[i] = names[i].replace('/', '_')
+            
+        del df
+        del y
+        
+        self.index_ = index_
+        self.names = names
+        
+        
+        
+
+    def get_index(self):
+        index_ = self.index_
+        return index_
+    
+    def get_name(self):
+        names = self.names
+        return names
+    
+    def get_meta(self):
+        meta = self.meta
+        column_name = self.column_name
+        return meta[column_name]
+    
+    def get_column_name(self):
+        column_name = self.column_name
+        return column_name
+    
+    def get_dataset(self):
+        df = self.meta
+        index_ = self.index_
+        list_of_df = []
+        for i in range(len(index_)):
+            list_of_df.append(df.loc[index_[i]])
+        
+        #Create object attribute
+        self.list_of_df = list_of_df
+        return list_of_df
+        
+
+
