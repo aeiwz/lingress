@@ -12,7 +12,7 @@ DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
 setup(
   name = 'lingress',      
   packages = ['lingress'], 
-  version = '1.0.7',  
+  version = '1.1.0',  
   license='MIT', 
   description = 'Metabolomics data analysis with univariate (linear regression) and visualization tools.',
   long_description=DESCRIPTION,
