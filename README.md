@@ -12,26 +12,39 @@ pip install lingress
 ## **Example code**
 
 
-    for examples:
-        #set parameter
-        x = Metabolic profiles dataset (dataset X)
-        taget = Metadata of two group (reccomend to sub-class of group label) (dataset Y)
-        Feature_name = name of features of dataset X in this case define to columns name of dataset X
+You can use function unipair to prepare the data for linear regression model. The function will return
+a pair-wise dataframe if you have more than 2 groups to observe.
 
-        X = spectra_X
-        target = meta['Class']
-        ppm = spectra_X.columns.astype(float) # columns name of example data is ppm of spectra
+```python
+from lingress import unipair
+import pandas as pd
 
-        test = lin_regression(X, target=target, label=target, features_name=ppm)
+# Create a unipair object
+test = unipair(dataset = df, column_name='Class')
 
-        #Create dataset to do linear regression model
+test.get_dataset() # Get list of dataset of all pairs
 
-        dataset = test.create_dataset()
-        test.show_dataset() # "show_dataset()" function will be return dataset to creat
+```
 
-        default methode is "fdr_bh"
-        test.fit_model(dataset, method = "fdr_bh") # fit model with linear regression
+```python
+from lingress import lin_regression
+import pandas as pd
 
+
+# Create a lin_regression object
+test = lin_regression(spectra_X, target=meta['Class'], label=meta['Class'], features = spectra_X.columns)
+
+# Create dataset to do linear regression model
+dataset = test.create_dataset()
+
+# Fit model with linear regression
+test.fit_model(dataset, method = "fdr_bh")
+
+# Get report
+test.report()
+```
+
+Note: 
         - `bonferroni` : one-step correction
         - `sidak` : one-step correction
         - `holm-sidak` : step down method using Sidak adjustments
@@ -42,10 +55,4 @@ pip install lingress
         - `fdr_by` : Benjamini/Yekutieli (negative)
         - `fdr_tsbh` : two stage fdr correction (non-negative)
         - `fdr_tsbky` : two stage fdr correction (non-negative)
-
-
-        # get report can be use .report() function
-        test.report() # "report()" function will be return report dataset as p-value, Beta, R_square, and p-value of F-test in one dataframe
-
-        # or u can return each value can be use .p_value(), .beta_value, .r_square, or .f_test()
 
