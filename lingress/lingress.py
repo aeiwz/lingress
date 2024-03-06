@@ -116,8 +116,8 @@ class lin_regression:
         dataset['Label'] = dataset['Label'].str.replace("/", "_")
         
         
-        self.label_a = str(dataset[dataset['Label'] == 0]['name'].unique()[0])
-        self.label_b = str(dataset[dataset['Label'] == 1]['name'].unique()[0])
+        self.label_a = str(dataset[dataset['Label'] == 0].unique()[0])
+        self.label_b = str(dataset[dataset['Label'] == 1].unique()[0])
         
         self.dataset = dataset # Assign the dataframe to the class attribute
         
