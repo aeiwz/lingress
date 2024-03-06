@@ -114,10 +114,13 @@ class lin_regression:
         
         # replace which label value contain / to _
         dataset['Label'] = dataset['Label'].str.replace("/", "_")
+
+        self.label_a = dataset['Label'].unique()[0]
+        self.label_b = dataset['Label'].unique()[1]
+        
+
         
         
-        self.label_a = str(dataset[dataset['Label'] == 0].unique()[0])
-        self.label_b = str(dataset[dataset['Label'] == 1].unique()[0])
         
         self.dataset = dataset # Assign the dataframe to the class attribute
         
@@ -187,8 +190,8 @@ class lin_regression:
         dataset['Label'] = dataset['Label'].str.replace("/", "_")
         
         
-        self.label_a = str(dataset[dataset['label'] == 0]['name'].unique()[0])
-        self.label_b = str(dataset[dataset['label'] == 1]['name'].unique()[0])
+        
+        
         
         self.dataset = dataset # Assign the dataframe to the class attribute
         
