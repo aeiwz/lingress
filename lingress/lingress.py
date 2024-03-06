@@ -76,13 +76,7 @@ class lin_regression:
         if not isinstance(x, (pd.DataFrame, np.ndarray)):
             raise ValueError("x must be dataframe or array")
         
-        #check target must be dataframe or array
-        if not isinstance(target, (pd.DataFrame, np.ndarray)):
-            raise ValueError("target must be dataframe or array")
-        
-        #check label must be dataframe or array
-        if not isinstance(label, (pd.DataFrame, np.ndarray)):
-            raise ValueError("label must be dataframe or array")
+
         
         #check features_name must be list or 1D array
         if not isinstance(features_name, (list, np.ndarray)):
@@ -104,7 +98,7 @@ class lin_regression:
         # Create new dataset
 
         y_ = pd.Categorical(self.y).codes # Convert the target to categorical variable codes (0, 1) 
-        y = pd.DataFrame(y_, index=self.tag.index) # Create a dataframe with the target variable codes and index from the original dataframe 
+        y = pd.DataFrame(y_) # Create a dataframe with the target variable codes and index from the original dataframe 
         x = self.x # Create a dataframe with the spectra data and index from the original dataframe 
         tag = self.label # Create a dataframe with the spectra data and index from the original dataframe 
         dataset = pd.concat([tag, y, x], axis=1) # Concatenate the target and spectra dataframes into one dataframe 
