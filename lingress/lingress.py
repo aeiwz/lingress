@@ -826,7 +826,10 @@ class unipair:
         
         #check unique values in the column
         if meta[column_name].nunique() < 3:
-            raise ValueError("Group should contain at least 3 groups")
+            # Raise an warning if the unique values in the column is less than 3 and go to process
+            raise ValueError("The unique values in the column is less than 3")
+            pass
+
         else:
             pass
         #check meta is a dataframe
