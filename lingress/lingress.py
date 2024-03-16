@@ -761,6 +761,14 @@ class lin_regression:
                         hover_data={"-Log10 P-value": True, "Log2 FC": True, "Beta": True, 'Features': True},
                         )
 
+        fig.update_traces(hovertemplate="<br>".join([
+                        "Cut off: %{customdata[2]}",
+                        "Log2 FC: %{x}",
+                        "-Log10 P-value: %{y}",
+                        "Beta: %{customdata[0]}",
+                        "Features: %{customdata[1]}"
+                        # Add more custom data here if needed
+                ]))
         fig.update_layout(
                         title={
                 'text': "<b>Volcano plot of {} vs {}</b>".format(label_a, label_b),
