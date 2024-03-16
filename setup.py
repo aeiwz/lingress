@@ -12,14 +12,14 @@ DESCRIPTION = '\n\n'.join(LOAD_TEXT(_) for _ in [
 setup(
   name = 'lingress',      
   packages = ['lingress'], 
-  version = '1.1.6',  
+  version = '1.2.0',  
   license='MIT', 
   description = 'Metabolomics data analysis with univariate (linear regression) and visualization tools.',
   long_description=DESCRIPTION,
   author = 'aeiwz',                 
   author_email = 'theerayut_aeiw_123@hotmail.com',     
   url = 'https://github.com/aeiwz/lingress.git',  
-  download_url = 'https://github.com/aeiwz/lingress/archive/refs/tags/v1.1.6.tar.gz',  
+  download_url = 'https://github.com/aeiwz/lingress/archive/refs/tags/v1.2.0.tar.gz',  
   keywords = ['Omics', 'Chemometrics', 'Visualization', 'Data Analysis', 'Univariate', 'Linear Regression'],
   install_requires=[            
           'scikit-learn',
