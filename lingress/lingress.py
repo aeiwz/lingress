@@ -108,7 +108,7 @@ class lin_regression:
         dataset.columns = newnames # Assign the new column names to the dataframe 
         
         self.dataset = dataset # Assign the dataframe to the class attribute 
-        return dataset # Return the dataframe 
+
 
     def show_dataset(self): # Show dataset to creat model 
         return self.dataset # Return the dataframe 
@@ -710,7 +710,7 @@ class lin_regression:
         print("<i>p-value</i>: {pos_y.f}")
 
 
-    def volcano_plot(self, p_val_cut_off=2, fc_cut_off=1):
+    def volcano_plot(self, p_val_cut_off=2, fc_cut_off=1, show_line=True):
         
         
         
@@ -732,53 +732,59 @@ class lin_regression:
         df_vol = pd.concat([log10_p, log2_fc, beta], axis=1)
         df_vol.columns=["-Log10 P-value", "Log2 FC", "Beta"]
         
-        p_ = ["T" if df_vol.at[i, "-Log10 P-value"] >= 2 else "F" for i in df_vol.index]
-        fc_ = ["T" if df_vol.at[i, "Log2 FC"] >= 1 or df_vol.at[i, "Log2 FC"] <= -1 else "F" for i in df_vol.index]
-        
-        df_vol["p_"] = p_
-        df_vol["fc_"] = fc_
-        
-        colour_list = []
-        for i in range(len(p_)):
-            if p_[i] == "T" and fc_[i] == "T":
-                colour_list.append("Pass")
+        cutoff_ = pd.DataFrame()
+        cutoff_['p-value cut off'] = np.where(df_vol['-Log10 P-value'] >= p_val_cut_off, f"Pass", "Under cut off")
+        cutoff_['FC cut off'] = np.where(df_vol['Log2 FC'] >= fc_cut_off, f"High in {label_a}", 
+                            np.where(df_vol['Log2 FC'] <= -fc_cut_off, f"High in {label_b}", 
+                            "Under cut off"))
+
+        report_ = []
+        for index, row in cutoff_.iterrows():
+            if row['p-value cut off'] == "Pass" and row['FC cut off'] == f"High in {label_a}":
+                report_.append(f"High in {label_a}")
+            elif row['p-value cut off'] == "Pass" and row['FC cut off'] == f"High in {label_b}":
+                report_.append(f"High in {label_b}")
             else:
-                colour_list.append("Reject")
-                
-        df_vol["colour"] = colour_list   
-                
+                report_.append("Under cut off")
+
+        df_vol["Threshold"] = report_
+        df_vol['Features'] = df_vol.index
+
+                        
         # x and y given as DataFrame columns
         fig = px.scatter(df_vol, x="Log2 FC", y="-Log10 P-value", height=900, width=1600,
-                        text=df_vol.index,
-                        color="colour",color_discrete_map = {"Pass": "#E02000", 
-                                                             "Reject": "#D9D9D9"},
+                        color="Threshold",color_discrete_map = {f"High in {label_a}": "#E02000",
+                                                                f"High in {label_b}": "#203E8A", 
+                                                                "Under cut off": "#D9D9D9"},
                         labels={"-Log10 P-value": "-log<sub>10</sub> (<i>p-value</i>)",
-                                "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",}
+                                "Log2 FC": "Log<sub>2</sub> (<i>Fold change</i>)",},
+                        hover_data={"-Log10 P-value": True, "Log2 FC": True, "Beta": True, 'Features': True},
                         )
-        
 
         fig.update_layout(
-                            title={
+                        title={
                 'text': "<b>Volcano plot of {} vs {}</b>".format(label_a, label_b),
                 'y':0.98,
                 'x':0.5,
                 'xanchor': 'center',
                 'yanchor': 'top'})
-        
+
         #Hide legend
         fig.update_traces(showlegend=False)
         #Hide text label
         fig.update_traces(textposition='top center').data[0]
-        
-        
-        fig.add_shape(type='line', x0=-10, y0=p_val_cut_off, x1=10, y1=p_val_cut_off,
-              line=dict(color='red', width=2, dash='dot'))
 
-        fig.add_shape(type='line', x0=-fc_cut_off, y0=0, x1=-fc_cut_off, y1=10,
-              line=dict(color='red', width=2, dash='dot'))
-              
-        fig.add_shape(type='line', x0=fc_cut_off, y0=0, x1=fc_cut_off, y1=10,
-              line=dict(color='red', width=2, dash='dot'))
+        if show_line == True:
+                fig.add_shape(type='line', x0=-10, y0=p_val_cut_off, x1=10, y1=p_val_cut_off,
+                        line=dict(color='red', width=2, dash='dot'))
+
+                fig.add_shape(type='line', x0=-fc_cut_off, y0=0, x1=-fc_cut_off, y1=10,
+                        line=dict(color='red', width=2, dash='dot'))
+                        
+                fig.add_shape(type='line', x0=fc_cut_off, y0=0, x1=fc_cut_off, y1=10,
+                        line=dict(color='red', width=2, dash='dot'))
+        else:
+                pass
         self.fig = fig
         
         return fig
@@ -796,9 +802,6 @@ class lin_regression:
         fig = self.fig
         return fig.write_image("{}/{}.png".format(path_save, plot_name))
 
-
-import numpy as np
-import pandas as pd
 
 
 class unipair:
