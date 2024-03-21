@@ -995,8 +995,8 @@ class group_plot:
             'plot_bgcolor': 'rgba(0, 0, 0, 0)',
             'paper_bgcolor': 'rgba(0, 0, 0, 0)',
         })
-
-    return fig
+        self.fig = fig
+        return fig
 
 
 
@@ -1072,5 +1072,6 @@ class group_plot:
             'plot_bgcolor': 'rgba(0, 0, 0, 0)',
             'paper_bgcolor': 'rgba(0, 0, 0, 0)',
         })
-
+        self.fig = fig
+        
         return fig
