@@ -828,11 +828,14 @@ class unipair:
         """
         import pandas as pd
         import numpy as np
-        
+        def warnings():
+            import warnings
+            warnings.filterwarnings("ignore")
         #check unique values in the column
         if meta[column_name].nunique() < 3:
-            # Raise an warning if the unique values in the column is less than 3 and go to process
-            raise ValueError("The unique values in the column is less than 3")
+            # Raise warnings.warn(Group in the column is less than 3")
+            warnings("Group in the column is less than 3")
+            #raise Warning("Group in the column is less than 3")
             pass
 
         else:
@@ -907,3 +910,167 @@ class unipair:
         
 
 
+class group_plot:
+
+    def __init__(self, dataset, label):
+
+        self.dataset = dataset
+        self.label = label
+
+        #Dataset must be a data frame or series
+        if not isinstance(dataset, (pd.DataFrame, pd.Series)):
+            raise ValueError('Dataset must be a pandas data frame or series')
+        #Label must be a list
+        if len(label) != len(dataset):
+            raise ValueError('Label must be a list of the same length as the dataset')
+        
+        
+
+    def box_plot(self, dataset, label, color_dict=None, 
+                    show_value = True,  font_size=24, 
+                    title_font_size=24, fig_height= 800, 
+                    fig_width=500, y_label='Absolute concentration (mM)',
+                    legend_name='Class', legend_font_size=18, legend_orientation='h',
+                    legend_x=0.5, legend_y=-0.08, yanchor = 'top', xanchor = 'center'):
+
+        dataset = self.dataset
+        label = self.label
+    
+        import plotly.express as px
+        import pandas as pd
+        
+
+        df = pd.DataFrame(dataset)
+        df['Class'] = label
+        column = df.columns[0]
+        
+        
+        #--------- color dictionary -----------#
+        if color_dict is not None:
+            if not isinstance(color_dict, dict):
+                raise ValueError('color_dict must be a dictionary')
+            else:
+                color_dict = color_dict
+        else:
+            color_dict = dict(zip(df['Class'].unique(), px.colors.qualitative.Plotly))
+        #--------------------------------------#
+        
+        legend_name = legend_name
+        fig_height = fig_height
+        fig_width = fig_width
+        
+        if show_value == True:
+            points = 'all'
+        else:
+            points = None
+        
+        
+        fig = px.box(df, y=column, 
+                            color=df['Class'],
+                            color_discrete_map=color_dict,
+                            width=fig_width, height=fig_height,
+                            labels={'Class': legend_name},
+                            points=points,
+                            hover_data=['Class', df.index])
+        
+        #add title and set to center with size 24 and bold
+        fig.update_layout(title={'text': '<b>{}</b>'.format(column), 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'}, font=dict(size=title_font_size))
+        #add y label 'Absolute concentration (mM)' and set to bold
+        fig.update_yaxes(title_text=f'{y_label}</b>', title_font=dict(size=font_size))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_layout(legend=dict(
+            orientation=legend_orientation,
+            itemwidth=50,
+            yanchor=yanchor,
+            y=legend_y,
+            xanchor=xanchor,
+            x=legend_x,
+            font=dict(
+                size=legend_font_size,
+                color="black"
+            ) 
+        ))
+        #background color
+        fig.update_layout({
+            'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+            'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+        })
+
+    return fig
+
+
+
+    def violin_plot(dataset, label, color_dict=None, show_value = True, show_box=True, font_size=24, 
+                    title_font_size=24, fig_height= 800, fig_width=500, y_label='Absolute concentration (mM)',
+                    legend_name='Class', legend_font_size=18, legend_orientation='h', legend_x=0.5, legend_y=-0.08,
+                    yanchor = 'top', xanchor = 'center'):
+        
+        import plotly.express as px
+        import pandas as pd
+        
+        #Dataset must be a data frame or series
+        if not isinstance(dataset, (pd.DataFrame, pd.Series)):
+            raise ValueError('Dataset must be a pandas data frame or series')
+        #Label must be a list
+        if len(label) != len(dataset):
+            raise ValueError('Label must be a list of the same length as the dataset')
+        
+        
+        df = pd.DataFrame(dataset)
+        df['Class'] = label
+        column = df.columns[0]
+        
+        
+        #--------- color dictionary -----------#
+        if color_dict is not None:
+            if not isinstance(color_dict, dict):
+                raise ValueError('color_dict must be a dictionary')
+            else:
+                color_dict = color_dict
+        else:
+            color_dict = dict(zip(df['Class'].unique(), px.colors.qualitative.Plotly))
+        #--------------------------------------#
+        
+        legend_name = legend_name
+        fig_height = fig_height
+        fig_width = fig_width
+        
+        if show_value == True:
+            points = 'all'
+        else:
+            points = None
+        
+        
+        fig = px.violin(df, y=column, 
+                            color=df['Class'],
+                            color_discrete_map=color_dict,
+                            width=fig_width, height=fig_height,
+                            labels={'Class': legend_name},
+                            points=points,
+                            hover_data=['Class', df.index],
+                            box=show_box)
+        
+        #add title and set to center with size 24 and bold
+        fig.update_layout(title={'text': '<b>{}</b>'.format(column), 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'}, font=dict(size=title_font_size))
+        #add y label 'Absolute concentration (mM)' and set to bold
+        fig.update_yaxes(title_text=f'{y_label}</b>', title_font=dict(size=font_size))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_layout(legend=dict(
+            orientation=legend_orientation,
+            itemwidth=50,
+            yanchor=yanchor,
+            y=legend_y,
+            xanchor=xanchor,
+            x=legend_x,
+            font=dict(
+                size=legend_font_size,
+                color="black"
+            ) 
+        ))
+        #background color
+        fig.update_layout({
+            'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+            'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+        })
+
+        return fig
