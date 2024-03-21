@@ -926,7 +926,7 @@ class group_plot:
         
         
 
-    def box_plot(self, dataset, label, color_dict=None, 
+    def box_plot(self, color_dict=None, 
                     show_value = True,  font_size=24, 
                     title_font_size=24, fig_height= 800, 
                     fig_width=500, y_label='Absolute concentration (mM)',
@@ -1000,10 +1000,14 @@ class group_plot:
 
 
 
-    def violin_plot(dataset, label, color_dict=None, show_value = True, show_box=True, font_size=24, 
+    def violin_plot(self, color_dict=None, show_value = True, show_box=True, font_size=24, 
                     title_font_size=24, fig_height= 800, fig_width=500, y_label='Absolute concentration (mM)',
                     legend_name='Class', legend_font_size=18, legend_orientation='h', legend_x=0.5, legend_y=-0.08,
                     yanchor = 'top', xanchor = 'center'):
+        
+
+        dataset = self.dataset
+        label = self.label
         
         import plotly.express as px
         import pandas as pd
